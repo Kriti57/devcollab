@@ -1,12 +1,15 @@
-import express from 'express';
-import {register, login} from '../controllers/authController';
+import { Router } from 'express';
+import { register, login, getMe, updateProfile } from '../controllers/authController';
+import { protect } from '../middleware/authMiddleware';
 
-const router = express.Router();
+const router = Router();
 
-// POST /api/auth/register
+// Public routes (no authentication needed)
 router.post('/register', register);
-
-// POST /api/auth/login
 router.post('/login', login);
+
+// Protected route (authentication required)
+router.get('/me', protect, getMe);
+router.put('/profile', protect, updateProfile);
 
 export default router;

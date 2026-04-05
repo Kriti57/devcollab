@@ -95,3 +95,82 @@ export const login = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * @desc   Get current user profile
+ * @route  GET /api/auth/me
+ * @access Private (requires authentication)
+ */
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        bio: user.bio,
+        skills: user.skills,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
+};
+
+/**
+ * @desc   Update user profile
+ * @route  PUT /api/auth/profile
+ * @access Private
+*/
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (req.body.username) user.username = req.body.username;
+    if (req.body.email) user.email = req.body.email;
+    if (req.body.bio) user.bio = req.body.bio;
+    if (req.body.avatar) user.avatar = req.body.avatar;
+    if (req.body.skills) user.skills = req.body.skills;
+
+    const updatedUser = await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        _id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        avatar: updatedUser.avatar,
+        bio: updatedUser.bio,
+        skills: updatedUser.skills,
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already exists',
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
+};

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './config/database';
 import authRoutes from './routes/authRoutes';
+import projectRoutes from './routes/projectRoutes';
 
 dotenv.config();
 
@@ -31,6 +32,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Auth routes
 app.use('/api/auth', authRoutes);
+// Project routes
+app.use('/api/projects', projectRoutes);
 
 // Health check route
 app.get('/api/health', (req: Request, res: Response) => {
