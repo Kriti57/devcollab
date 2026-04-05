@@ -4,11 +4,36 @@ A developer collaboration platform that combines GitHub integration, real-time c
 
 ## Features
 
-- **User Profiles** - GitHub OAuth integration with skills showcase
-- **Project Matchmaking** - AI-powered developer matching based on skills
-- **Real-time Chat** - WebSocket-based messaging per project
-- **Code Snippets** - Share and collaborate on code with syntax highlighting
-- **Task Board** - Kanban-style collaborative project management
+### Implemented
+- **User Authentication**
+  - Registration with email validation
+  - Login with JWT tokens
+  - Password hashing with bcrypt
+  - Protected routes middleware
+  - Get and update user profile
+
+- **Project Management**
+  - Create, read, update, delete projects
+  - User-project relationships
+  - Project filtering by creator
+  - Tech stack tracking
+  - Looking for roles feature
+  - GitHub repository integration
+  - Project status tracking (planning, active, completed, on-hold)
+
+- **Database**
+  - MongoDB Atlas cloud database
+  - Mongoose ODM with schemas and validation
+  - User and Project models with relationships
+  - Data population for related documents
+
+### Coming Soon
+- Real-time chat with Socket.io
+- GitHub OAuth integration
+- Project matchmaking algorithm
+- Task board (Kanban style)
+- Code snippet sharing with Monaco Editor
+- Collaborative features
 
 ## Tech Stack
 
@@ -26,6 +51,22 @@ A developer collaboration platform that combines GitHub integration, real-time c
 - Socket.io
 - JWT Authentication
 - GitHub OAuth
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login user
+- `GET /api/auth/me` - Get current user (Protected)
+- `PUT /api/auth/profile` - Update user profile (Protected)
+
+### Projects
+- `GET /api/projects` - Get all projects
+- `GET /api/projects/:id` - Get project by ID
+- `POST /api/projects` - Create new project (Protected)
+- `GET /api/projects/my/projects` - Get user's projects (Protected)
+- `PUT /api/projects/:id` - Update project (Protected)
+- `DELETE /api/projects/:id` - Delete project (Protected)
 
 ## Installation
 
