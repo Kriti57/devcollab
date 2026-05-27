@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
 import generateToken from '../utils/generateToken';
+import Project from '../models/Project';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -168,6 +169,51 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
     }
 
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
+};
+
+/**
+ * @desc   Get user by ID with their projects
+ * @route  GET /api/auth/user/:id
+ * @access Public
+*/
+export const getUserById = async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Get user's projects
+    const projects = await Project.find({ creator: user._id })
+      .select('name description techStack status')
+      .limit(10);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        user: {
+          _id: user._id,
+          username: user.username,
+          email: user.email,
+          avatar: user.avatar,
+          bio: user.bio,
+          skills: user.skills,
+          createdAt: user.createdAt,
+        },
+        projects: projects,
+        projectCount: projects.length,
+      },
+    });
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: error.message || 'Server error',

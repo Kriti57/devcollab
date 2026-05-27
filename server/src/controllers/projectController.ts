@@ -44,28 +44,54 @@ export const createProject = async (req: Request, res: Response) => {
 };
 
 /**
- * @desc     Get all projects
- * @route    GET /api/projects
- * @access   Public
+ * @desc    Get all projects with search and filters
+ * @route   GET /api/projects?search=react&techStack=TypeScript&status=active&lookingFor=Designer
+ * @access  Public
 */
 export const getAllProjects = async (req: Request, res: Response) => {
-    try {
-        const projects = await Project.find()
-        .populate('creator', 'username email avatar')
-        .populate('members', 'username avatar')
-        .sort({ createdAt: -1});
-        
-        res.status(200).json({
-            success: true,
-            count: projects.length,
-            data: projects,
-        });
-    } catch (error: any) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Server error',
-        });
+  try {
+    // Build query object
+    const query: any = {};
+
+    // Search by name or description
+    if (req.query.search) {
+      query.$or = [
+        { name: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } },
+      ];
     }
+
+    // Filter by tech stack
+    if (req.query.techStack) {
+      query.techStack = { $in: [req.query.techStack] };
+    }
+
+    // Filter by status
+    if (req.query.status) {
+      query.status = req.query.status;
+    }
+
+    // Filter by looking for
+    if (req.query.lookingFor) {
+      query.lookingFor = { $in: [req.query.lookingFor] };
+    }
+
+    const projects = await Project.find(query)
+      .populate('creator', 'username email avatar')
+      .populate('members', 'username avatar')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: projects.length,
+      data: projects,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
 };
 
 /**
@@ -195,6 +221,107 @@ export const getMyProjects = async (req: Request, res: Response) => {
       success: true,
       count: projects.length,
       data: projects,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
+};
+
+/**
+ * @desc    Join a project
+ * @route   POST /api/projects/:id/join
+ * @access  Private
+*/
+export const joinProject = async (req: Request, res: Response) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+    }
+
+    const alreadyMember = project.members.some(
+      (member) => member.toString() ===  req.user._id.toString()
+    );
+
+    if (alreadyMember) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are already a member of this project',
+      });
+    }
+
+    project.members.push(req.user._id);
+    await project.save();
+
+    const updatedProject = await Project.findById(req.params.id)
+      .populate('creator', 'username email avatar')
+      .populate('members', 'username avatar skills');
+
+    res.status(200).json({
+      success: true,
+      message: 'Successfully joined the project',
+      data: updatedProject,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
+};
+
+/**
+ * @desc    Leave a project
+ * @route   POST /api/projects/:id/leave
+ * @access  Private
+*/
+export const leaveProject = async (req: Request, res: Response) => {
+  try {
+    const project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+    }
+
+    // Check if user is the creator
+    if (project.creator.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project creator cannot leave the project. Delete it instead.',
+      });
+    }
+
+    // Check if user is a member
+    const isMember = project.members.some(
+      (member) => member.toString() === req.user._id.toString()
+    );
+
+    if (!isMember) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are not a member of this project',
+      });
+    }
+
+    // Remove user from members
+    project.members = project.members.filter(
+      (member) => member.toString() !== req.user._id.toString()
+    );
+    await project.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Successfully left the project',
     });
   } catch (error: any) {
     res.status(500).json({
