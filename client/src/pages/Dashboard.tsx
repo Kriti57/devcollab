@@ -17,6 +17,10 @@ import {
   MenuItem,
   Chip,
   Avatar,
+  Select,           
+  FormControl,     
+  InputLabel,       
+  IconButton,
 } from '@mui/material';
 import { projectService } from '../services/projectService';
 import { authService } from '../services/authService';
@@ -28,6 +32,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [techFilter, setTechFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const navigate = useNavigate();
@@ -65,16 +72,58 @@ export default function Dashboard() {
   }, [navigate]);
 
   // Filter projects by search term
-  const filteredProjects = projects.filter((project) =>
+  const filteredProjects = projects.filter((project) => {
+  // Search filter
+  const matchesSearch =
+    searchTerm === '' ||
     project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     project.techStack.some((tech) =>
       tech.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    // ↑ IMPROVED SEARCH!
-    // Now searches in name, description AND tech stack!
-    // .some(): Returns true if ANY tech matches
-  );
+    );
+
+  // Status filter
+  const matchesStatus =
+    statusFilter === '' ||
+    project.status === statusFilter;
+  // Empty = show all, otherwise exact match
+
+  // Tech stack filter
+  const matchesTech =
+    techFilter === '' ||
+    project.techStack.some((tech) =>
+      tech.toLowerCase().includes(techFilter.toLowerCase())
+    );
+  // Check if ANY tech in project matches filter
+
+  // Role filter
+  const matchesRole =
+    roleFilter === '' ||
+    project.lookingFor.some((role) =>
+      role.toLowerCase().includes(roleFilter.toLowerCase())
+    );
+  // Check if ANY role in project matches filter
+
+  // Project must match ALL active filters
+  return matchesSearch && matchesStatus && matchesTech && matchesRole;
+});
+
+// Count active filters for UI feedback
+const activeFiltersCount = [statusFilter, techFilter, roleFilter]
+  .filter(Boolean).length;
+// .filter(Boolean): Remove empty strings
+// .length: Count how many filters are active
+// Example: statusFilter="active", techFilter="", roleFilter="Designer"
+// ["active", "", "Designer"].filter(Boolean) = ["active", "Designer"]
+// .length = 2 active filters
+
+const clearFilters = () => {
+  setStatusFilter('');
+  setTechFilter('');
+  setRoleFilter('');
+  setSearchTerm('');
+  // Reset all filters to empty = show all projects
+};
 
   const handleLogout = () => {
     authService.logout();
@@ -218,14 +267,108 @@ export default function Dashboard() {
         </Box>
         {/* Stats row shows quick overview numbers */}
 
-        {/* SEARCH */}
-        <TextField
-          fullWidth
-          placeholder="🔍 Search by name, description, or tech stack..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ mb: 3, bgcolor: 'white', borderRadius: 1 }}
-        />
+        {/* SEARCH AND FILTERS */}
+        <Box sx={{ mb: 3 }}>
+
+          {/* SEARCH BAR */}
+          <TextField
+            fullWidth
+            placeholder="🔍 Search by name, description, or tech stack..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ mb: 2, bgcolor: 'white', borderRadius: 1 }}
+          />
+
+          {/* FILTER ROW */}
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+
+            {/* STATUS FILTER DROPDOWN */}
+            <FormControl sx={{ minWidth: 150, bgcolor: 'white' }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Status"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="">All Statuses</MenuItem>
+                <MenuItem value="planning">Planning</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="on-hold">On Hold</MenuItem>
+              </Select>
+            </FormControl>
+            {/* FormControl: Wrapper for Select with label */}
+            {/* Select: Dropdown menu */}
+            {/* MenuItem value="": Empty = show all */}
+
+            {/* TECH STACK FILTER */}
+            <TextField
+              placeholder="Filter by tech..."
+              value={techFilter}
+              onChange={(e) => setTechFilter(e.target.value)}
+              sx={{ minWidth: 150, bgcolor: 'white' }}
+            />
+            {/* Simple text input - filters as you type! */}
+
+            {/* ROLE FILTER */}
+            <TextField
+              placeholder="Filter by role..."
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              sx={{ minWidth: 150, bgcolor: 'white' }}
+            />
+            {/* Example: type "Designer" → shows projects looking for designers */}
+
+            {/* CLEAR FILTERS BUTTON */}
+            {activeFiltersCount > 0 && (
+              // Only show clear button if filters are active!
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={clearFilters}
+                size="small"
+              >
+                Clear Filters ({activeFiltersCount})
+              </Button>
+              // Shows how many filters are active
+              // Example: "Clear Filters (2)"
+            )}
+          </Box>
+
+          {/* ACTIVE FILTER CHIPS */}
+          {activeFiltersCount > 0 && (
+            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+              {/* Show active filters as removable chips */}
+
+              {statusFilter && (
+                <Chip
+                  label={`Status: ${statusFilter}`}
+                  onDelete={() => setStatusFilter('')}
+                  size="small"
+                  color="primary"
+                />
+                // onDelete: X button removes this filter
+              )}
+              {techFilter && (
+                <Chip
+                  label={`Tech: ${techFilter}`}
+                  onDelete={() => setTechFilter('')}
+                  size="small"
+                  color="primary"
+                />
+              )}
+              {roleFilter && (
+                <Chip
+                  label={`Role: ${roleFilter}`}
+                  onDelete={() => setRoleFilter('')}
+                  size="small"
+                  color="primary"
+                />
+              )}
+            </Box>
+          )}
+          {/* Visual feedback: "Status: active × " "Tech: React × " */}
+        </Box>
 
         {/* ERROR */}
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -238,10 +381,12 @@ export default function Dashboard() {
         ) : (
           <>
             <Typography variant="h5" fontWeight="bold" gutterBottom>
-              {searchTerm ? `Results for "${searchTerm}"` : 'All Projects'}
+              {activeFiltersCount > 0 || searchTerm
+                ? 'Filtered Projects'
+                : 'All Projects'}
               {' '}
               <Typography component="span" color="textSecondary">
-                ({filteredProjects.length})
+                ({filteredProjects.length} of {projects.length})
               </Typography>
             </Typography>
             {/* Show "Results for X" when searching, otherwise "All Projects" */}
